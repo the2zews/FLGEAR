@@ -1,6 +1,7 @@
 --[[
-    FLGΞAR v2.1 | FTAP (Fling Things And People)
-    Premium Intro | Dark Violet UI | Anti-Detection
+    FLGΞAR v7.0 | FTAP Script
+    Style: Like Blitz | Premium Features
+    Hotkeys: M (menu) | - (minimize)
     GitHub: https://github.com/the2zews/FLGEAR
 ]]
 
@@ -17,663 +18,949 @@ local Root = Char:WaitForChild("HumanoidRootPart")
 -- ============================================================
 
 local CONFIG = {
-    Range = 30,
     Power = 5000,
-    Mode = "Explosion",  -- "Explosion" | "Push" | "Vortex"
-    AntiKick = true,
+    Mode = "Explosion",
+    Range = 30,
+    ESP = true,
+    Aura = true,
+    AntiFling = true,
+    AutoFling = false,
+    Whitelist = {},
     Silent = false
 }
 
 -- ============================================================
--- COLORS
+-- SAVE / LOAD
+-- ============================================================
+
+local CONFIG_PATH = "FLGEAR_Config.json"
+
+local function saveConfig()
+    if not writefile then return end
+    pcall(function()
+        writefile(CONFIG_PATH, game:GetService("HttpService"):JSONEncode(CONFIG))
+    end)
+end
+
+local function loadConfig()
+    if not readfile then return end
+    pcall(function()
+        local content = readfile(CONFIG_PATH)
+        if content and content ~= "" then
+            local data = game:GetService("HttpService"):JSONDecode(content)
+            for k, v in pairs(CONFIG) do
+                if data[k] ~= nil then
+                    CONFIG[k] = data[k]
+                end
+            end
+        end
+    end)
+end
+
+loadConfig()
+
+-- ============================================================
+-- BLITZ STYLE COLORS (Grey/Dark Theme)
 -- ============================================================
 
 local COLORS = {
-    Primary = Color3.fromHex("7a6085"),
-    PrimaryDark = Color3.fromHex("4a3a52"),
-    PrimaryLight = Color3.fromHex("a080b5"),
-    Glow = Color3.fromHex("b090c5"),
-    Background = Color3.fromHex("1a1420"),
-    Text = Color3.fromHex("f0e8f5"),
-    Accent = Color3.fromHex("d4b0e0")
+    Background = Color3.fromHex("1a1a1a"),
+    Panel = Color3.fromHex("2a2a2a"),
+    PanelLight = Color3.fromHex("3a3a3a"),
+    Primary = Color3.fromHex("4a9eff"),
+    PrimaryDark = Color3.fromHex("3a7acc"),
+    Text = Color3.fromHex("ffffff"),
+    TextDim = Color3.fromHex("888888"),
+    Border = Color3.fromHex("3a3a3a"),
+    Success = Color3.fromHex("4caf50"),
+    Danger = Color3.fromHex("f44336"),
+    Glow = Color3.fromHex("4a9eff")
 }
 
 -- ============================================================
--- PREMIUM INTRO ANIMATION
+-- UI HELPERS
 -- ============================================================
 
-local function playPremiumIntro()
-    local animGui = Instance.new("ScreenGui")
-    animGui.Name = "FLGEAR_Intro"
-    animGui.Parent = LP.PlayerGui
-    animGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    animGui.ResetOnSpawn = false
+local function round(frame, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 6)
+    c.Parent = frame
+end
 
-    local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromHex("000000")
-    bg.BackgroundTransparency = 0.15
-    bg.BorderSizePixel = 0
-    bg.Parent = animGui
-
-    -- Logo container
-    local logoContainer = Instance.new("Frame")
-    logoContainer.Size = UDim2.new(0, 320, 0, 320)
-    logoContainer.Position = UDim2.new(0.5, -160, 0.5, -160)
-    logoContainer.BackgroundTransparency = 1
-    logoContainer.Parent = animGui
-
-    -- Xi (Ξ) parts
-    local function createXiPart(x, y, w, h)
-        local part = Instance.new("Frame")
-        part.Size = UDim2.new(0, w, 0, h)
-        part.Position = UDim2.new(0, x, 0, y)
-        part.BackgroundColor3 = Color3.fromHex("ffffff")
-        part.BackgroundTransparency = 1
-        part.BorderSizePixel = 0
-        part.Parent = logoContainer
-        return part
-    end
-
-    local topBar = createXiPart(40, 20, 240, 28)
-    local midBar = createXiPart(40, 146, 240, 28)
-    local botBar = createXiPart(40, 272, 240, 28)
-    local vertBar = createXiPart(148, 20, 24, 280)
-
-    -- Lightning inside Xi
-    local boltTop = Instance.new("Frame")
-    boltTop.Size = UDim2.new(0, 8, 0, 70)
-    boltTop.Position = UDim2.new(0.5, -4, 0, -50)
-    boltTop.BackgroundColor3 = Color3.fromHex("ffffff")
-    boltTop.BackgroundTransparency = 1
-    boltTop.BorderSizePixel = 0
-    boltTop.Parent = logoContainer
-
-    local boltSeg1 = Instance.new("Frame")
-    boltSeg1.Size = UDim2.new(0, 50, 0, 8)
-    boltSeg1.Position = UDim2.new(0.5, -25, 0, 20)
-    boltSeg1.BackgroundColor3 = Color3.fromHex("ffffff")
-    boltSeg1.BackgroundTransparency = 1
-    boltSeg1.Rotation = 30
-    boltSeg1.Parent = logoContainer
-
-    local boltSeg2 = Instance.new("Frame")
-    boltSeg2.Size = UDim2.new(0, 50, 0, 8)
-    boltSeg2.Position = UDim2.new(0.5, -5, 0, 60)
-    boltSeg2.BackgroundColor3 = Color3.fromHex("ffffff")
-    boltSeg2.BackgroundTransparency = 1
-    boltSeg2.Rotation = -30
-    boltSeg2.Parent = logoContainer
-
-    local boltSeg3 = Instance.new("Frame")
-    boltSeg3.Size = UDim2.new(0, 50, 0, 8)
-    boltSeg3.Position = UDim2.new(0.5, -25, 0, 100)
-    boltSeg3.BackgroundColor3 = Color3.fromHex("ffffff")
-    boltSeg3.BackgroundTransparency = 1
-    boltSeg3.Rotation = 30
-    boltSeg3.Parent = logoContainer
-
-    local boltBot = Instance.new("Frame")
-    boltBot.Size = UDim2.new(0, 8, 0, 60)
-    boltBot.Position = UDim2.new(0.5, -4, 0, 180)
-    boltBot.BackgroundColor3 = Color3.fromHex("ffffff")
-    boltBot.BackgroundTransparency = 1
-    boltBot.BorderSizePixel = 0
-    boltBot.Parent = logoContainer
-
-    local boltGroup = Instance.new("Folder")
-    boltGroup.Name = "BoltGroup"
-    boltGroup.Parent = logoContainer
-    boltTop.Parent = boltGroup
-    boltSeg1.Parent = boltGroup
-    boltSeg2.Parent = boltGroup
-    boltSeg3.Parent = boltGroup
-    boltBot.Parent = boltGroup
-
-    local xiGroup = Instance.new("Folder")
-    xiGroup.Name = "XiGroup"
-    xiGroup.Parent = logoContainer
-    topBar.Parent = xiGroup
-    midBar.Parent = xiGroup
-    botBar.Parent = xiGroup
-    vertBar.Parent = xiGroup
-
-    -- Text: FLGΞAR + lightning
-    local textGroup = Instance.new("Frame")
-    textGroup.Size = UDim2.new(0, 600, 0, 140)
-    textGroup.Position = UDim2.new(0.5, -300, 0.5, -70)
-    textGroup.BackgroundTransparency = 1
-    textGroup.Parent = animGui
-    textGroup.Visible = false
-
-    local flgLabel = Instance.new("TextLabel")
-    flgLabel.Size = UDim2.new(0, 140, 0, 130)
-    flgLabel.Position = UDim2.new(0, 0, 0, 5)
-    flgLabel.BackgroundTransparency = 1
-    flgLabel.Text = "FLG"
-    flgLabel.TextColor3 = Color3.fromHex("ffffff")
-    flgLabel.TextTransparency = 1
-    flgLabel.TextScaled = true
-    flgLabel.Font = Enum.Font.GothamBold
-    flgLabel.TextXAlignment = Enum.TextXAlignment.Right
-    flgLabel.Parent = textGroup
-
-    local xiText = Instance.new("TextLabel")
-    xiText.Size = UDim2.new(0, 60, 0, 130)
-    xiText.Position = UDim2.new(0, 140, 0, 5)
-    xiText.BackgroundTransparency = 1
-    xiText.Text = "Ξ"
-    xiText.TextColor3 = Color3.fromHex("ffffff")
-    xiText.TextTransparency = 1
-    xiText.TextScaled = true
-    xiText.Font = Enum.Font.GothamBold
-    xiText.Parent = textGroup
-
-    local arLabel = Instance.new("TextLabel")
-    arLabel.Size = UDim2.new(0, 100, 0, 130)
-    arLabel.Position = UDim2.new(0, 200, 0, 5)
-    arLabel.BackgroundTransparency = 1
-    arLabel.Text = "AR"
-    arLabel.TextColor3 = Color3.fromHex("ffffff")
-    arLabel.TextTransparency = 1
-    arLabel.TextScaled = true
-    arLabel.Font = Enum.Font.GothamBold
-    arLabel.TextXAlignment = Enum.TextXAlignment.Left
-    arLabel.Parent = textGroup
-
-    -- Final lightning
-    local boltFinal = Instance.new("Frame")
-    boltFinal.Size = UDim2.new(0, 8, 0, 120)
-    boltFinal.Position = UDim2.new(0, 320, 0, 10)
-    boltFinal.BackgroundColor3 = Color3.fromHex("ffffff")
-    boltFinal.BackgroundTransparency = 1
-    boltFinal.BorderSizePixel = 0
-    boltFinal.Parent = textGroup
-
-    local fSeg1 = Instance.new("Frame")
-    fSeg1.Size = UDim2.new(0, 35, 0, 6)
-    fSeg1.Position = UDim2.new(0, -10, 0, 30)
-    fSeg1.BackgroundColor3 = Color3.fromHex("ffffff")
-    fSeg1.BackgroundTransparency = 1
-    fSeg1.Rotation = 25
-    fSeg1.Parent = boltFinal
-
-    local fSeg2 = Instance.new("Frame")
-    fSeg2.Size = UDim2.new(0, 35, 0, 6)
-    fSeg2.Position = UDim2.new(0, 5, 0, 55)
-    fSeg2.BackgroundColor3 = Color3.fromHex("ffffff")
-    fSeg2.BackgroundTransparency = 1
-    fSeg2.Rotation = -25
-    fSeg2.Parent = boltFinal
-
-    local fSeg3 = Instance.new("Frame")
-    fSeg3.Size = UDim2.new(0, 35, 0, 6)
-    fSeg3.Position = UDim2.new(0, -10, 0, 80)
-    fSeg3.BackgroundColor3 = Color3.fromHex("ffffff")
-    fSeg3.BackgroundTransparency = 1
-    fSeg3.Rotation = 25
-    fSeg3.Parent = boltFinal
-
-    -- Animation
-    local parts = {}
-    for _, child in pairs(logoContainer:GetDescendants()) do
-        if child:IsA("Frame") then
-            table.insert(parts, child)
-        end
-    end
-
-    for _, part in pairs(parts) do
-        part.BackgroundTransparency = 1
-    end
-
-    for _, part in pairs(parts) do
-        local t = TweenService:Create(part, TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-            BackgroundTransparency = 0
-        })
-        t:Play()
-    end
-
-    task.wait(3)
-    local tLogoLeft = TweenService:Create(logoContainer, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.15, -160, 0.5, -160)
-    })
-    tLogoLeft:Play()
-
-    task.wait(1)
-    local tLogoRight = TweenService:Create(logoContainer, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
-        Position = UDim2.new(0.5, 200, 0.5, -160)
-    })
-    tLogoRight:Play()
-
-    textGroup.Visible = true
-
-    local tFlg = TweenService:Create(flgLabel, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        TextTransparency = 0
-    })
-    tFlg:Play()
-
-    task.wait(0.15)
-    local tXi = TweenService:Create(xiText, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        TextTransparency = 0
-    })
-    tXi:Play()
-
-    task.wait(0.15)
-    local tAr = TweenService:Create(arLabel, TweenInfo.new(0.4, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        TextTransparency = 0
-    })
-    tAr:Play()
-
-    task.wait(0.2)
-    for _, part in pairs(boltFinal:GetDescendants()) do
-        if part:IsA("Frame") then
-            local t = TweenService:Create(part, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-                BackgroundTransparency = 0
-            })
-            t:Play()
-        end
-    end
-    local tBoltFinal = TweenService:Create(boltFinal, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 0
-    })
-    tBoltFinal:Play()
-
-    task.wait(0.5)
-    local tFinalShift = TweenService:Create(textGroup, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0.4, -300, 0.5, -70)
-    })
-    tFinalShift:Play()
-
-    task.wait(1.5)
-    local tBgFade = TweenService:Create(bg, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
-        BackgroundTransparency = 1
-    })
-    tBgFade:Play()
-    task.wait(0.6)
-    animGui:Destroy()
+local function stroke(frame, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color or COLORS.Border
+    s.Thickness = thickness or 1
+    s.Parent = frame
 end
 
 -- ============================================================
--- UI (Dark Violet Theme)
+-- ANIMATION (FLGΞAR + lightning)
 -- ============================================================
 
+local function showAnimation()
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "FLGEAR_Animation"
+    screen.Parent = LP.PlayerGui
+    screen.ResetOnSpawn = false
+    screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromHex("0d0d0d")
+    bg.BackgroundTransparency = 0
+    bg.BorderSizePixel = 0
+    bg.Parent = screen
+
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(0, 450, 0, 100)
+    container.Position = UDim2.new(0.5, -225, 0.5, -50)
+    container.BackgroundTransparency = 1
+    container.Parent = screen
+
+    -- FLGΞAR with lightning
+    local logo = Instance.new("TextLabel")
+    logo.Size = UDim2.new(1, 0, 0, 65)
+    logo.Position = UDim2.new(0, 0, 0, 0)
+    logo.BackgroundTransparency = 1
+    logo.Text = "FLGΞAR ⚡"
+    logo.TextColor3 = Color3.fromHex("ffffff")
+    logo.TextTransparency = 1
+    logo.TextScaled = true
+    logo.Font = Enum.Font.GothamBold
+    logo.Parent = container
+
+    local sub = Instance.new("TextLabel")
+    sub.Size = UDim2.new(1, 0, 0, 25)
+    sub.Position = UDim2.new(0, 0, 0, 70)
+    sub.BackgroundTransparency = 1
+    sub.Text = "PREMIUM FTAP v7.0"
+    sub.TextColor3 = COLORS.TextDim
+    sub.TextTransparency = 1
+    sub.TextScaled = true
+    sub.Font = Enum.Font.Gotham
+    sub.Parent = container
+
+    -- Animation sequence
+    local t1 = TweenService:Create(logo, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+        TextTransparency = 0
+    })
+    t1:Play()
+
+    task.wait(0.4)
+    local t2 = TweenService:Create(sub, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+        TextTransparency = 0
+    })
+    t2:Play()
+
+    task.wait(2.5)
+
+    local t3 = TweenService:Create(logo, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        TextTransparency = 1
+    })
+    t3:Play()
+
+    local t4 = TweenService:Create(sub, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        TextTransparency = 1
+    })
+    t4:Play()
+
+    local t5 = TweenService:Create(bg, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+        BackgroundTransparency = 1
+    })
+    t5:Play()
+
+    task.wait(1)
+    screen:Destroy()
+    createUI()
+    toggleUI(true)
+end
+
+-- ============================================================
+-- ESP
+-- ============================================================
+
+local espHighlights = {}
+
+local function updateESP()
+    for _, h in pairs(espHighlights) do
+        pcall(function() h:Destroy() end)
+    end
+    espHighlights = {}
+    if not CONFIG.ESP then return end
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LP and plr.Character then
+            local h = Instance.new("Highlight")
+            h.FillColor = COLORS.Primary
+            h.FillTransparency = 0.35
+            h.OutlineColor = COLORS.Primary
+            h.OutlineTransparency = 0.2
+            h.DepthMode = Enum.HighlightDepthMode.Occluded
+            h.Adornee = plr.Character
+            h.Parent = plr.Character
+            table.insert(espHighlights, h)
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(updateESP)
+Players.PlayerRemoving:Connect(updateESP)
+
+-- ============================================================
+-- AURA
+-- ============================================================
+
+local auraAttachment = nil
+local auraParticle = nil
+
+local function createAura()
+    if auraParticle then
+        pcall(function()
+            auraParticle:Destroy()
+            auraAttachment:Destroy()
+        end)
+        auraParticle = nil
+        auraAttachment = nil
+    end
+    if not CONFIG.Aura or not Char then return end
+    auraAttachment = Instance.new("Attachment")
+    auraAttachment.Name = "FLGEAR_Aura"
+    auraAttachment.Parent = Root
+    auraParticle = Instance.new("ParticleEmitter")
+    auraParticle.Texture = "rbxassetid://4746973818"
+    auraParticle.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, COLORS.Primary),
+        ColorSequenceKeypoint.new(0.5, Color3.fromHex("6ab0ff")),
+        ColorSequenceKeypoint.new(1, COLORS.PrimaryDark)
+    })
+    auraParticle.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 2),
+        NumberSequenceKeypoint.new(0.5, 5),
+        NumberSequenceKeypoint.new(1, 2)
+    })
+    auraParticle.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.8),
+        NumberSequenceKeypoint.new(0.5, 0.4),
+        NumberSequenceKeypoint.new(1, 0.8)
+    })
+    auraParticle.Lifetime = NumberRange.new(1.5, 3)
+    auraParticle.Rate = 15
+    auraParticle.Rotation = NumberRange.new(0, 360)
+    auraParticle.SpreadAngle = Vector2.new(360, 360)
+    auraParticle.Velocity = NumberRange.new(2, 6)
+    auraParticle.Parent = auraAttachment
+end
+
+LP.CharacterAdded:Connect(function(c)
+    Char = c
+    Root = c:WaitForChild("HumanoidRootPart")
+    task.wait(0.3)
+    createAura()
+end)
+
+createAura()
+
+-- ============================================================
+-- ANTI-FLING
+-- ============================================================
+
+if CONFIG.AntiFling and hookfunction then
+    local old = hookfunction(getrawmetatable(game).__namecall, newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "FireServer" and self.Name and self.Name:match("AntiFling|Kick|Grab|Ban") then
+            return nil
+        end
+        return old(self, ...)
+    end))
+end
+
+-- ============================================================
+-- PLAYER LIST
+-- ============================================================
+
+local listFrame = nil
+
+local function updatePlayerList(parent)
+    if listFrame then
+        pcall(function() listFrame:Destroy() end)
+        listFrame = nil
+    end
+    if not parent then return end
+    listFrame = Instance.new("Frame")
+    listFrame.Size = UDim2.new(0.9, 0, 0, 120)
+    listFrame.Position = UDim2.new(0.05, 0, 0, 10)
+    listFrame.BackgroundColor3 = COLORS.Panel
+    listFrame.BackgroundTransparency = 0.5
+    listFrame.BorderSizePixel = 0
+    listFrame.Parent = parent
+    round(listFrame, 6)
+    stroke(listFrame, COLORS.Border, 0.5)
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -10, 1, -10)
+    scroll.Position = UDim2.new(0, 5, 0, 5)
+    scroll.BackgroundTransparency = 1
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.ScrollBarThickness = 3
+    scroll.ScrollBarImageColor3 = COLORS.Primary
+    scroll.Parent = listFrame
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 2)
+    layout.Parent = scroll
+
+    local y = 0
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LP then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(0.45, 0, 0, 22)
+            btn.Position = UDim2.new(0, 0, 0, y)
+            btn.BackgroundColor3 = COLORS.PanelLight
+            btn.BackgroundTransparency = 0.3
+            btn.BorderSizePixel = 0
+            btn.Text = plr.Name .. (table.find(CONFIG.Whitelist, plr.Name) and " ★" or "")
+            btn.TextColor3 = COLORS.Text
+            btn.TextScaled = true
+            btn.Font = Enum.Font.Gotham
+            btn.Parent = scroll
+            round(btn, 4)
+            btn.MouseButton1Click:Connect(function()
+                local idx = table.find(CONFIG.Whitelist, plr.Name)
+                if idx then
+                    table.remove(CONFIG.Whitelist, idx)
+                    btn.Text = plr.Name
+                else
+                    table.insert(CONFIG.Whitelist, plr.Name)
+                    btn.Text = plr.Name .. " ★"
+                end
+                saveConfig()
+            end)
+            btn.MouseButton2Click:Connect(function()
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    Root.CFrame = plr.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                end
+            end)
+            y = y + 25
+        end
+    end
+    scroll.CanvasSize = UDim2.new(0, 0, 0, y)
+end
+
+-- ============================================================
+-- MAIN UI (BLITZ STYLE)
+-- ============================================================
+
+local gui = nil
+local mainFrame = nil
+local blur = nil
+local uiVisible = false
+local uiMinimized = false
+local isClosed = false
+
+local function toggleUI(show)
+    if isClosed then return end
+    uiVisible = (show ~= nil) and show or not uiVisible
+    if not gui or not mainFrame then return end
+    if uiVisible and not uiMinimized then
+        mainFrame.Visible = true
+        TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 0.92
+        }):Play()
+        if blur then
+            TweenService:Create(blur, TweenInfo.new(0.25), {Size = 10}):Play()
+        end
+    else
+        TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Sine, Enum.EasingDirection.In), {
+            BackgroundTransparency = 1
+        }):Play()
+        if blur then
+            TweenService:Create(blur, TweenInfo.new(0.2), {Size = 0}):Play()
+        end
+        task.wait(0.2)
+        mainFrame.Visible = false
+    end
+end
+
+local function minimizeUI()
+    if isClosed then return end
+    uiMinimized = true
+    uiVisible = false
+    if mainFrame then
+        mainFrame.Visible = false
+        if blur then
+            TweenService:Create(blur, TweenInfo.new(0.2), {Size = 0}):Play()
+        end
+    end
+end
+
+local function closeUI()
+    isClosed = true
+    uiVisible = false
+    uiMinimized = false
+    if gui then
+        pcall(function() gui:Destroy() end)
+        gui = nil
+        mainFrame = nil
+    end
+    if blur then
+        pcall(function() blur:Destroy() end)
+        blur = nil
+    end
+end
+
 local function createUI()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "FLGEAR_UI"
-    screenGui.Parent = LP.PlayerGui
-    screenGui.ResetOnSpawn = false
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    if gui then
+        pcall(function() gui:Destroy() end)
+        gui = nil
+        mainFrame = nil
+    end
+    isClosed = false
+    uiMinimized = false
+    uiVisible = true
 
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 360, 0, 480)
-    mainFrame.Position = UDim2.new(0.5, -180, 0.5, -240)
-    mainFrame.BackgroundColor3 = COLORS.Background
-    mainFrame.BackgroundTransparency = 0.92
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Parent = screenGui
+    gui = Instance.new("ScreenGui")
+    gui.Name = "FLGEAR_UI"
+    gui.Parent = LP.PlayerGui
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    local blur = Instance.new("BlurEffect")
+    blur = Instance.new("BlurEffect")
     blur.Size = 10
     blur.Parent = game:GetService("Lighting")
 
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, COLORS.PrimaryDark),
-        ColorSequenceKeypoint.new(0.5, COLORS.Primary),
-        ColorSequenceKeypoint.new(1, COLORS.PrimaryDark)
-    })
-    gradient.Rotation = 45
-    gradient.Parent = mainFrame
+    -- Main Frame
+    mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 400, 0, 500)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+    mainFrame.BackgroundColor3 = COLORS.Background
+    mainFrame.BackgroundTransparency = 0.92
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = gui
+    round(mainFrame, 10)
+    stroke(mainFrame, COLORS.Border, 1)
 
-    local glowBorder = Instance.new("Frame")
-    glowBorder.Size = UDim2.new(1, 0, 1, 0)
-    glowBorder.Position = UDim2.new(0, -2, 0, -2)
-    glowBorder.BackgroundColor3 = COLORS.Glow
-    glowBorder.BackgroundTransparency = 0.7
-    glowBorder.BorderSizePixel = 0
-    glowBorder.Parent = mainFrame
-
-    local border = Instance.new("Frame")
-    border.Size = UDim2.new(1, 0, 1, 0)
-    border.BackgroundColor3 = COLORS.Primary
-    border.BackgroundTransparency = 0.5
-    border.BorderSizePixel = 2
-    border.Parent = mainFrame
+    -- ===== TITLE BAR (Blitz style) =====
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = COLORS.Panel
+    titleBar.BackgroundTransparency = 0.3
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    round(titleBar, 10)
 
     -- Title
-    local titleFrame = Instance.new("Frame")
-    titleFrame.Size = UDim2.new(1, 0, 0, 70)
-    titleFrame.BackgroundTransparency = 1
-    titleFrame.Parent = mainFrame
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0.6, 0, 1, 0)
+    title.Position = UDim2.new(0, 10, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "FLGΞAR ⚡ v7.0"
+    title.TextColor3 = COLORS.Text
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = titleBar
 
-    local titleText = Instance.new("TextLabel")
-    titleText.Size = UDim2.new(1, 0, 1, 0)
-    titleText.BackgroundTransparency = 1
-    titleText.Text = "FLGΞAR"
-    titleText.TextColor3 = COLORS.Text
-    titleText.TextScaled = true
-    titleText.Font = Enum.Font.GothamBold
-    titleText.Parent = titleFrame
+    -- Minimize button (-)
+    local minBtn = Instance.new("TextButton")
+    minBtn.Size = UDim2.new(0, 30, 0, 30)
+    minBtn.Position = UDim2.new(1, -60, 0, 2)
+    minBtn.BackgroundColor3 = COLORS.PanelLight
+    minBtn.BackgroundTransparency = 0.2
+    minBtn.BorderSizePixel = 0
+    minBtn.Text = "−"
+    minBtn.TextColor3 = COLORS.Text
+    minBtn.TextScaled = true
+    minBtn.Font = Enum.Font.GothamBold
+    minBtn.Parent = titleBar
+    round(minBtn, 4)
+    minBtn.MouseButton1Click:Connect(minimizeUI)
 
-    local xiLabel = Instance.new("TextLabel")
-    xiLabel.Size = UDim2.new(0, 60, 0, 60)
-    xiLabel.Position = UDim2.new(0.5, -30, 0, 5)
-    xiLabel.BackgroundTransparency = 1
-    xiLabel.Text = "Ξ"
-    xiLabel.TextColor3 = COLORS.PrimaryLight
-    xiLabel.TextScaled = true
-    xiLabel.Font = Enum.Font.GothamBold
-    xiLabel.Parent = titleFrame
+    -- Close button (X)
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -32, 0, 2)
+    closeBtn.BackgroundColor3 = COLORS.PanelLight
+    closeBtn.BackgroundTransparency = 0.2
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = COLORS.Danger
+    closeBtn.TextScaled = true
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = titleBar
+    round(closeBtn, 4)
+    closeBtn.MouseButton1Click:Connect(closeUI)
 
-    local xiTween1 = TweenService:Create(xiLabel, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        Rotation = 360,
-        TextColor3 = COLORS.Glow
-    })
-    xiTween1:Play()
+    -- ===== TABS (Blitz style) =====
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Size = UDim2.new(1, 0, 0, 32)
+    tabContainer.Position = UDim2.new(0, 0, 0, 35)
+    tabContainer.BackgroundColor3 = COLORS.Panel
+    tabContainer.BackgroundTransparency = 0.5
+    tabContainer.BorderSizePixel = 0
+    tabContainer.Parent = mainFrame
 
-    local xiTween2 = TweenService:Create(xiLabel, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-        TextTransparency = 0.3,
-        Position = UDim2.new(0.5, -30, 0, 15)
-    })
-    xiTween2:Play()
+    local tabs = {"Fling", "Visuals", "Players", "Beta"}
+    local tabButtons = {}
+    local currentTab = 1
+
+    for i, name in ipairs(tabs) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0.25, 0, 1, 0)
+        btn.Position = UDim2.new((i-1) * 0.25, 0, 0, 0)
+        btn.BackgroundColor3 = (i == 1) and COLORS.Primary or COLORS.Primary
+        btn.BackgroundTransparency = (i == 1) and 0.3 or 0.9
+        btn.BorderSizePixel = 0
+        btn.Text = name
+        btn.TextColor3 = (i == 1) and COLORS.Text or COLORS.TextDim
+        btn.TextScaled = true
+        btn.Font = Enum.Font.GothamBold
+        btn.Parent = tabContainer
+        btn.MouseButton1Click:Connect(function()
+            currentTab = i
+            for _, b in pairs(tabButtons) do
+                b.BackgroundTransparency = 0.9
+                b.TextColor3 = COLORS.TextDim
+            end
+            btn.BackgroundTransparency = 0.3
+            btn.TextColor3 = COLORS.Text
+            switchTab(i)
+        end)
+        table.insert(tabButtons, btn)
+    end
+
+    -- ===== CONTENT CONTAINER =====
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Size = UDim2.new(1, 0, 1, -67)
+    contentContainer.Position = UDim2.new(0, 0, 0, 67)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = mainFrame
+
+    -- ===== TAB 1: FLING =====
+    local tab1 = Instance.new("Frame")
+    tab1.Size = UDim2.new(1, 0, 1, 0)
+    tab1.BackgroundTransparency = 1
+    tab1.Parent = contentContainer
 
     -- Stats
-    local statsFrame = Instance.new("Frame")
-    statsFrame.Size = UDim2.new(1, -20, 0, 40)
-    statsFrame.Position = UDim2.new(0, 10, 0, 75)
-    statsFrame.BackgroundColor3 = COLORS.PrimaryDark
-    statsFrame.BackgroundTransparency = 0.5
-    statsFrame.BorderSizePixel = 0
-    statsFrame.Parent = mainFrame
-
-    local statsText = Instance.new("TextLabel")
-    statsText.Size = UDim2.new(1, 0, 1, 0)
-    statsText.BackgroundTransparency = 1
-    statsText.Text = "⚡ FLING READY"
-    statsText.TextColor3 = COLORS.Text
-    statsText.TextScaled = true
-    statsText.Font = Enum.Font.Gotham
-    statsText.Parent = statsFrame
+    local stats = Instance.new("TextLabel")
+    stats.Size = UDim2.new(1, -20, 0, 26)
+    stats.Position = UDim2.new(0, 10, 0, 8)
+    stats.BackgroundColor3 = COLORS.Panel
+    stats.BackgroundTransparency = 0.4
+    stats.Text = CONFIG.Mode .. "  •  " .. CONFIG.Power .. "  •  R" .. CONFIG.Range
+    stats.TextColor3 = COLORS.Text
+    stats.TextScaled = true
+    stats.Font = Enum.Font.Gotham
+    stats.Parent = tab1
+    round(stats, 4)
 
     -- Modes
     local modes = {"Explosion", "Push", "Vortex"}
-    local modeButtons = {}
-
-    for i, mode in ipairs(modes) do
+    local modeBtns = {}
+    for i, m in ipairs(modes) do
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.28, 0, 0, 35)
-        btn.Position = UDim2.new(0.03 + (i-1) * 0.34, 0, 0, 130)
-        btn.BackgroundColor3 = (mode == CONFIG.Mode) and COLORS.Primary or COLORS.PrimaryDark
-        btn.BackgroundTransparency = 0.3
+        btn.Size = UDim2.new(0.28, 0, 0, 28)
+        btn.Position = UDim2.new(0.03 + (i-1) * 0.34, 0, 0, 44)
+        btn.BackgroundColor3 = (m == CONFIG.Mode) and COLORS.Primary or COLORS.Panel
+        btn.BackgroundTransparency = (m == CONFIG.Mode) and 0.3 or 0.4
         btn.BorderSizePixel = 0
-        btn.Text = mode
-        btn.TextColor3 = COLORS.Text
+        btn.Text = m
+        btn.TextColor3 = (m == CONFIG.Mode) and COLORS.Text or COLORS.TextDim
         btn.TextScaled = true
         btn.Font = Enum.Font.GothamBold
-        btn.Parent = mainFrame
-
+        btn.Parent = tab1
+        round(btn, 4)
         btn.MouseButton1Click:Connect(function()
-            CONFIG.Mode = mode
-            for _, b in ipairs(modeButtons) do
-                b.BackgroundColor3 = COLORS.PrimaryDark
+            CONFIG.Mode = m
+            for _, b in pairs(modeBtns) do
+                b.BackgroundTransparency = 0.4
+                b.TextColor3 = COLORS.TextDim
             end
-            btn.BackgroundColor3 = COLORS.Primary
-            statsText.Text = "🔄 MODE: " .. mode
+            btn.BackgroundTransparency = 0.3
+            btn.TextColor3 = COLORS.Text
+            stats.Text = m .. "  •  " .. CONFIG.Power .. "  •  R" .. CONFIG.Range
+            saveConfig()
         end)
-
-        table.insert(modeButtons, btn)
+        table.insert(modeBtns, btn)
     end
 
     -- Power Slider
-    local powerFrame = Instance.new("Frame")
-    powerFrame.Size = UDim2.new(0.9, 0, 0, 40)
-    powerFrame.Position = UDim2.new(0.05, 0, 0, 180)
-    powerFrame.BackgroundTransparency = 1
-    powerFrame.Parent = mainFrame
+    local pLabel = Instance.new("TextLabel")
+    pLabel.Size = UDim2.new(0.6, 0, 0, 20)
+    pLabel.Position = UDim2.new(0.05, 0, 0, 82)
+    pLabel.BackgroundTransparency = 1
+    pLabel.Text = "POWER: " .. CONFIG.Power
+    pLabel.TextColor3 = COLORS.Text
+    pLabel.TextScaled = true
+    pLabel.Font = Enum.Font.Gotham
+    pLabel.TextXAlignment = Enum.TextXAlignment.Left
+    pLabel.Parent = tab1
 
-    local powerLabel = Instance.new("TextLabel")
-    powerLabel.Size = UDim2.new(0.4, 0, 1, 0)
-    powerLabel.BackgroundTransparency = 1
-    powerLabel.Text = "⚡ POWER"
-    powerLabel.TextColor3 = COLORS.Text
-    powerLabel.TextScaled = true
-    powerLabel.Font = Enum.Font.Gotham
-    powerLabel.TextXAlignment = Enum.TextXAlignment.Left
-    powerLabel.Parent = powerFrame
+    local pSlider = Instance.new("Frame")
+    pSlider.Size = UDim2.new(0.85, 0, 0, 4)
+    pSlider.Position = UDim2.new(0.075, 0, 0, 104)
+    pSlider.BackgroundColor3 = COLORS.Panel
+    pSlider.BackgroundTransparency = 0.3
+    pSlider.Parent = tab1
+    round(pSlider, 2)
 
-    local powerValue = Instance.new("TextLabel")
-    powerValue.Size = UDim2.new(0.3, 0, 1, 0)
-    powerValue.Position = UDim2.new(0.7, 0, 0, 0)
-    powerValue.BackgroundTransparency = 1
-    powerValue.Text = tostring(CONFIG.Power)
-    powerValue.TextColor3 = COLORS.PrimaryLight
-    powerValue.TextScaled = true
-    powerValue.Font = Enum.Font.GothamBold
-    powerValue.TextXAlignment = Enum.TextXAlignment.Right
-    powerValue.Parent = powerFrame
+    local pFill = Instance.new("Frame")
+    pFill.Size = UDim2.new((CONFIG.Power - 1000) / 14000, 0, 1, 0)
+    pFill.BackgroundColor3 = COLORS.Primary
+    pFill.Parent = pSlider
+    round(pFill, 2)
 
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(0.9, 0, 0, 6)
-    slider.Position = UDim2.new(0.05, 0, 0, 225)
-    slider.BackgroundColor3 = COLORS.PrimaryDark
-    slider.BorderSizePixel = 0
-    slider.Parent = mainFrame
+    local draggingP = false
+    pSlider.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then draggingP = true end
+    end)
+    pSlider.InputEnded:Connect(function()
+        draggingP = false
+        saveConfig()
+    end)
+    pSlider.InputChanged:Connect(function(i)
+        if draggingP and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local p = math.clamp((i.Position.X - pSlider.AbsolutePosition.X) / pSlider.AbsoluteSize.X, 0, 1)
+            CONFIG.Power = math.round(1000 + p * 14000)
+            pLabel.Text = "POWER: " .. CONFIG.Power
+            stats.Text = CONFIG.Mode .. "  •  " .. CONFIG.Power .. "  •  R" .. CONFIG.Range
+            pFill.Size = UDim2.new(p, 0, 1, 0)
+        end
+    end)
 
-    local sliderFill = Instance.new("Frame")
-    sliderFill.Size = UDim2.new((CONFIG.Power - 1000) / 14000, 0, 1, 0)
-    sliderFill.BackgroundColor3 = COLORS.Primary
-    sliderFill.BorderSizePixel = 0
-    sliderFill.Parent = slider
+    -- Range Slider
+    local rLabel = Instance.new("TextLabel")
+    rLabel.Size = UDim2.new(0.6, 0, 0, 20)
+    rLabel.Position = UDim2.new(0.05, 0, 0, 122)
+    rLabel.BackgroundTransparency = 1
+    rLabel.Text = "RANGE: " .. CONFIG.Range
+    rLabel.TextColor3 = COLORS.Text
+    rLabel.TextScaled = true
+    rLabel.Font = Enum.Font.Gotham
+    rLabel.TextXAlignment = Enum.TextXAlignment.Left
+    rLabel.Parent = tab1
 
-    local dragging = false
-    slider.InputBegan:Connect(function(input)
+    local rSlider = Instance.new("Frame")
+    rSlider.Size = UDim2.new(0.85, 0, 0, 4)
+    rSlider.Position = UDim2.new(0.075, 0, 0, 144)
+    rSlider.BackgroundColor3 = COLORS.Panel
+    rSlider.BackgroundTransparency = 0.3
+    rSlider.Parent = tab1
+    round(rSlider, 2)
+
+    local rFill = Instance.new("Frame")
+    rFill.Size = UDim2.new((CONFIG.Range - 10) / 50, 0, 1, 0)
+    rFill.BackgroundColor3 = COLORS.Primary
+    rFill.Parent = rSlider
+    round(rFill, 2)
+
+    local draggingR = false
+    rSlider.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then draggingR = true end
+    end)
+    rSlider.InputEnded:Connect(function()
+        draggingR = false
+        saveConfig()
+    end)
+    rSlider.InputChanged:Connect(function(i)
+        if draggingR and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local p = math.clamp((i.Position.X - rSlider.AbsolutePosition.X) / rSlider.AbsoluteSize.X, 0, 1)
+            CONFIG.Range = math.round(10 + p * 50)
+            rLabel.Text = "RANGE: " .. CONFIG.Range
+            stats.Text = CONFIG.Mode .. "  •  " .. CONFIG.Power .. "  •  R" .. CONFIG.Range
+            rFill.Size = UDim2.new(p, 0, 1, 0)
+        end
+    end)
+
+    -- AutoFling Toggle
+    local afFrame = Instance.new("Frame")
+    afFrame.Size = UDim2.new(0.5, 0, 0, 24)
+    afFrame.Position = UDim2.new(0.05, 0, 0, 160)
+    afFrame.BackgroundTransparency = 1
+    afFrame.Parent = tab1
+
+    local afLabel = Instance.new("TextLabel")
+    afLabel.Size = UDim2.new(0.5, 0, 1, 0)
+    afLabel.BackgroundTransparency = 1
+    afLabel.Text = "AUTO FLING"
+    afLabel.TextColor3 = COLORS.Text
+    afLabel.TextScaled = true
+    afLabel.Font = Enum.Font.Gotham
+    afLabel.TextXAlignment = Enum.TextXAlignment.Left
+    afLabel.Parent = afFrame
+
+    local afCheck = Instance.new("ImageLabel")
+    afCheck.Size = UDim2.new(0, 16, 0, 16)
+    afCheck.Position = UDim2.new(0.7, 0, 0, 4)
+    afCheck.BackgroundColor3 = COLORS.Panel
+    afCheck.Image = "rbxassetid://3926305904"
+    afCheck.ImageColor3 = CONFIG.AutoFling and COLORS.Primary or COLORS.TextDim
+    afCheck.ScaleType = Enum.ScaleType.Fit
+    afCheck.Parent = afFrame
+    round(afCheck, 3)
+
+    afFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
-    end)
-    slider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    slider.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-            CONFIG.Power = math.round(1000 + percent * 14000)
-            powerValue.Text = tostring(CONFIG.Power)
-            sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+            CONFIG.AutoFling = not CONFIG.AutoFling
+            afCheck.ImageColor3 = CONFIG.AutoFling and COLORS.Primary or COLORS.TextDim
+            saveConfig()
         end
     end)
 
-    -- Anti-Kick Toggle
-    local akFrame = Instance.new("Frame")
-    akFrame.Size = UDim2.new(0.9, 0, 0, 30)
-    akFrame.Position = UDim2.new(0.05, 0, 0, 245)
-    akFrame.BackgroundTransparency = 1
-    akFrame.Parent = mainFrame
+    -- ===== TAB 2: VISUALS =====
+    local tab2 = Instance.new("Frame")
+    tab2.Size = UDim2.new(1, 0, 1, 0)
+    tab2.BackgroundTransparency = 1
+    tab2.Visible = false
+    tab2.Parent = contentContainer
 
-    local akLabel = Instance.new("TextLabel")
-    akLabel.Size = UDim2.new(0.7, 0, 1, 0)
-    akLabel.BackgroundTransparency = 1
-    akLabel.Text = "🛡️ ANTI-KICK"
-    akLabel.TextColor3 = COLORS.Text
-    akLabel.TextScaled = true
-    akLabel.Font = Enum.Font.Gotham
-    akLabel.TextXAlignment = Enum.TextXAlignment.Left
-    akLabel.Parent = akFrame
+    local visualToggles = {
+        {name = "ESP", key = "ESP"},
+        {name = "Aura", key = "Aura"},
+        {name = "ANTI-FLING", key = "AntiFling"}
+    }
 
-    local akCheck = Instance.new("ImageLabel")
-    akCheck.Size = UDim2.new(0, 25, 0, 25)
-    akCheck.Position = UDim2.new(0.9, 0, 0, 2)
-    akCheck.BackgroundColor3 = COLORS.Primary
-    akCheck.Image = "rbxassetid://3926305904"
-    akCheck.ImageColor3 = COLORS.Text
-    akCheck.ScaleType = Enum.ScaleType.Fit
-    akCheck.Parent = akFrame
+    for i, t in ipairs(visualToggles) do
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0.5, 0, 0, 24)
+        frame.Position = UDim2.new(0.05 + ((i-1) % 2) * 0.45, 0, 0, 10 + math.floor((i-1)/2) * 32)
+        frame.BackgroundTransparency = 1
+        frame.Parent = tab2
 
-    akFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            CONFIG.AntiKick = not CONFIG.AntiKick
-            akCheck.ImageColor3 = CONFIG.AntiKick and COLORS.Text or COLORS.PrimaryDark
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.5, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = t.name
+        label.TextColor3 = COLORS.Text
+        label.TextScaled = true
+        label.Font = Enum.Font.Gotham
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = frame
+
+        local check = Instance.new("ImageLabel")
+        check.Size = UDim2.new(0, 16, 0, 16)
+        check.Position = UDim2.new(0.7, 0, 0, 4)
+        check.BackgroundColor3 = COLORS.Panel
+        check.Image = "rbxassetid://3926305904"
+        check.ImageColor3 = CONFIG[t.key] and COLORS.Primary or COLORS.TextDim
+        check.ScaleType = Enum.ScaleType.Fit
+        check.Parent = frame
+        round(check, 3)
+
+        frame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                CONFIG[t.key] = not CONFIG[t.key]
+                check.ImageColor3 = CONFIG[t.key] and COLORS.Primary or COLORS.TextDim
+                if t.key == "ESP" then updateESP() end
+                if t.key == "Aura" then createAura() end
+                saveConfig()
+            end
+        end)
+    end
+
+    -- ===== TAB 3: PLAYERS =====
+    local tab3 = Instance.new("Frame")
+    tab3.Size = UDim2.new(1, 0, 1, 0)
+    tab3.BackgroundTransparency = 1
+    tab3.Visible = false
+    tab3.Parent = contentContainer
+
+    updatePlayerList(tab3)
+
+    -- ===== TAB 4: BETA =====
+    local tab4 = Instance.new("Frame")
+    tab4.Size = UDim2.new(1, 0, 1, 0)
+    tab4.BackgroundTransparency = 1
+    tab4.Visible = false
+    tab4.Parent = contentContainer
+
+    -- Beta features (marked with small text)
+    local betaFeatures = {
+        {name = "Silent Aim", status = "Beta"},
+        {name = "Auto Teleport", status = "Beta"},
+        {name = "Spin Fling", status = "Beta"},
+        {name = "Multi Fling", status = "Beta"}
+    }
+
+    for i, feat in ipairs(betaFeatures) do
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0.9, 0, 0, 28)
+        frame.Position = UDim2.new(0.05, 0, 0, 10 + (i-1) * 34)
+        frame.BackgroundColor3 = COLORS.Panel
+        frame.BackgroundTransparency = 0.3
+        frame.BorderSizePixel = 0
+        frame.Parent = tab4
+        round(frame, 4)
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.6, 0, 1, 0)
+        label.Position = UDim2.new(0, 10, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = feat.name
+        label.TextColor3 = COLORS.Text
+        label.TextScaled = true
+        label.Font = Enum.Font.Gotham
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = frame
+
+        local betaTag = Instance.new("TextLabel")
+        betaTag.Size = UDim2.new(0.2, 0, 1, 0)
+        betaTag.Position = UDim2.new(0.7, 0, 0, 0)
+        betaTag.BackgroundTransparency = 1
+        betaTag.Text = "BETA"
+        betaTag.TextColor3 = COLORS.TextDim
+        betaTag.TextScaled = true
+        betaTag.Font = Enum.Font.Gotham
+        betaTag.TextXAlignment = Enum.TextXAlignment.Right
+        betaTag.Parent = frame
+    end
+
+    -- ===== TAB SWITCHER =====
+    function switchTab(tabIndex)
+        local tabs_frames = {tab1, tab2, tab3, tab4}
+        for i, frame in pairs(tabs_frames) do
+            frame.Visible = (i == tabIndex)
         end
-    end)
+    end
 
-    -- Toggle UI
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0.2, 0, 0, 30)
-    toggleBtn.Position = UDim2.new(0.4, 0, 0, 300)
-    toggleBtn.BackgroundColor3 = COLORS.PrimaryDark
-    toggleBtn.BackgroundTransparency = 0.5
-    toggleBtn.BorderSizePixel = 0
-    toggleBtn.Text = "▼ HIDE"
-    toggleBtn.TextColor3 = COLORS.Text
-    toggleBtn.TextScaled = true
-    toggleBtn.Font = Enum.Font.GothamBold
-    toggleBtn.Parent = mainFrame
+    switchTab(1)
 
-    local uiVisible = true
-    toggleBtn.MouseButton1Click:Connect(function()
-        uiVisible = not uiVisible
-        mainFrame.Visible = uiVisible
-        toggleBtn.Text = uiVisible and "▼ HIDE" or "▲ SHOW"
-    end)
-
-    -- Close
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 5)
-    closeBtn.BackgroundTransparency = 1
-    closeBtn.Text = "✕"
-    closeBtn.TextColor3 = COLORS.Text
-    closeBtn.TextScaled = true
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.Parent = mainFrame
-
-    closeBtn.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-        game:GetService("Lighting").Blur:Destroy()
-    end)
-
-    -- Drag
+    -- ===== DRAG (Blitz style - drag by title bar) =====
     local drag = false
     local dragStart, startPos
 
-    mainFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    titleBar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
             drag = true
-            dragStart = input.Position
+            dragStart = i.Position
             startPos = mainFrame.Position
         end
     end)
 
-    mainFrame.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            drag = false
+    titleBar.InputEnded:Connect(function() drag = false end)
+
+    titleBar.InputChanged:Connect(function(i)
+        if drag and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = i.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
         end
     end)
 
-    mainFrame.InputChanged:Connect(function(input)
-        if drag and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    return screenGui
+    mainFrame.Visible = false
 end
 
 -- ============================================================
--- PHYSICS (FLING)
+-- PHYSICS
 -- ============================================================
 
-local function getNearbyPlayers()
+local function isWhitelisted(plr)
+    return table.find(CONFIG.Whitelist, plr.Name) ~= nil
+end
+
+local function getTargets()
     local list = {}
+    local pos = Root.Position
     for _, plr in pairs(Players:GetPlayers()) do
-        if plr ~= LP and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (plr.Character.HumanoidRootPart.Position - Root.Position).Magnitude
-            if dist <= CONFIG.Range then
-                table.insert(list, plr.Character)
+        if plr ~= LP and not isWhitelisted(plr) and plr.Character then
+            local root = plr.Character:FindFirstChild("HumanoidRootPart")
+            if root then
+                local dist = (root.Position - pos).Magnitude
+                if dist <= CONFIG.Range then
+                    table.insert(list, plr.Character)
+                end
             end
         end
     end
     return list
 end
 
-RunService.Stepped:Connect(function()
-    if not Char or not Root then return end
-
-    local targets = getNearbyPlayers()
-    for _, targetChar in pairs(targets) do
-        local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-        if not targetRoot then continue end
-
-        if CONFIG.Mode == "Explosion" then
-            local explosion = Instance.new("Explosion")
-            explosion.Position = targetRoot.Position + Vector3.new(0, 2, 0)
-            explosion.BlastRadius = 5
-            explosion.BlastPressure = CONFIG.Power / 50
-            explosion.DestroyJointRadiusPercent = 0
-            explosion.Parent = workspace
-            explosion:Destroy()
-        elseif CONFIG.Mode == "Push" then
-            local bv = Instance.new("BodyVelocity")
-            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bv.Velocity = (targetRoot.Position - Root.Position).Unit * CONFIG.Power
-            bv.Parent = targetRoot
+local function flingTarget(target)
+    local root = target:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    if CONFIG.Mode == "Explosion" then
+        local e = Instance.new("Explosion")
+        e.Position = root.Position + Vector3.new(0, 2, 0)
+        e.BlastRadius = 5
+        e.BlastPressure = CONFIG.Power / 50
+        e.DestroyJointRadiusPercent = 0
+        e.Parent = workspace
+        task.defer(function() e:Destroy() end)
+    elseif CONFIG.Mode == "Push" then
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bv.Velocity = (root.Position - Root.Position).Unit * CONFIG.Power
+        bv.Parent = root
+        task.defer(function()
             task.wait(0.05)
             bv:Destroy()
-        elseif CONFIG.Mode == "Vortex" then
-            local bodyPos = Instance.new("BodyPosition")
-            bodyPos.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-            bodyPos.Position = Root.Position + Vector3.new(0, 30, 0)
-            bodyPos.P = 3000
-            bodyPos.D = 500
-            bodyPos.Parent = targetRoot
+        end)
+    elseif CONFIG.Mode == "Vortex" then
+        local bp = Instance.new("BodyPosition")
+        bp.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bp.Position = Root.Position + Vector3.new(0, 30, 0)
+        bp.P = 3000
+        bp.D = 500
+        bp.Parent = root
+        task.defer(function()
             task.wait(0.15)
-            bodyPos:Destroy()
-            targetRoot.Velocity = Vector3.new(0, CONFIG.Power * 0.8, 0)
+            bp:Destroy()
+            root.Velocity = Vector3.new(0, CONFIG.Power * 0.8, 0)
+        end)
+    end
+end
+
+local frameCount = 0
+RunService.Stepped:Connect(function()
+    frameCount = frameCount + 1
+    if frameCount % 2 ~= 0 then return end
+    if not Char or not Root then return end
+
+    local targets = getTargets()
+    if CONFIG.AutoFling then
+        for _, t in pairs(targets) do
+            flingTarget(t)
+        end
+    else
+        local closest = nil
+        local cd = math.huge
+        local pos = Root.Position
+        for _, t in pairs(targets) do
+            local root = t:FindFirstChild("HumanoidRootPart")
+            if root then
+                local d = (root.Position - pos).Magnitude
+                if d < cd then
+                    cd = d
+                    closest = t
+                end
+            end
+        end
+        if closest then
+            flingTarget(closest)
         end
     end
 end)
 
 -- ============================================================
--- ANTI-KICK
--- ============================================================
-
-if CONFIG.AntiKick then
-    local oldNamecall = nil
-    if hookfunction then
-        oldNamecall = hookfunction(getrawmetatable(game).__namecall, newcclosure(function(self, ...)
-            local method = getnamecallmethod()
-            if method == "FireServer" and self.Name:match("AntiFling|Kick") then
-                return nil
-            end
-            return oldNamecall(self, ...)
-        end))
-    end
-end
-
--- ============================================================
--- HOTKEYS
+-- HOTKEYS (M = menu, - = minimize)
 -- ============================================================
 
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
 
-    if input.KeyCode == Enum.KeyCode.F then
-        CONFIG.Power = CONFIG.Power == 5000 and 15000 or 5000
-        if not CONFIG.Silent then
-            LP:Chat("⚡ FLGΞAR POWER: " .. CONFIG.Power)
+    if input.KeyCode == Enum.KeyCode.M then
+        if isClosed then
+            createUI()
+            toggleUI(true)
+        elseif uiMinimized then
+            uiMinimized = false
+            toggleUI(true)
+        else
+            toggleUI()
         end
     end
 
-    if input.KeyCode == Enum.KeyCode.R then
-        local modes = {"Explosion", "Push", "Vortex"}
-        local currentIndex = table.find(modes, CONFIG.Mode)
-        CONFIG.Mode = modes[currentIndex % 3 + 1]
-        if not CONFIG.Silent then
-            LP:Chat("🔄 MODE: " .. CONFIG.Mode)
-        end
+    if input.KeyCode == Enum.KeyCode.Minus then
+        minimizeUI()
     end
 end)
 
@@ -681,17 +968,11 @@ end)
 -- STARTUP
 -- ============================================================
 
-playPremiumIntro()
-createUI()
+showAnimation()
 
-print("═══════════════════════════════════════")
-print("  ███████╗██╗      ██████╗ ███████╗")
-print("  ██╔════╝██║     ██╔════╝ ██╔════╝")
-print("  █████╗  ██║     ██║  ███╗█████╗")
-print("  ██╔══╝  ██║     ██║   ██║██╔══╝")
-print("  ██║     ███████╗╚██████╔╝███████╗")
-print("  ╚═╝     ╚══════╝ ╚═════╝ ╚══════╝")
-print("  FLGΞAR v2.1 | FTAP")
-print("  Mode: " .. CONFIG.Mode .. " | Power: " .. CONFIG.Power)
-print("  [F] Power | [R] Mode | Drag UI")
-print("═══════════════════════════════════════")
+print("========================================")
+print("  FLGΞAR v7.0 loaded")
+print("  Mode: " .. CONFIG.Mode)
+print("  Power: " .. CONFIG.Power)
+print("  [M] Menu | [-] Minimize")
+print("========================================")
